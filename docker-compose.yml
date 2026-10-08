@@ -1,0 +1,32 @@
+# OpenBB ODP API behind Traefik (Hostinger "Docker and Traefik" VPS template).
+# Traefik runs in host network mode and finds the container through the Docker
+# socket, so no shared network is needed.
+#
+# The ODP API has no working authentication of its own, so access is protected
+# by Traefik basic auth. Create the entry with:  openssl passwd -apr1
+# and put "user:hash" in .env as ODP_AUTH_USERS (quote it, it contains $).
+#
+# Note: with basic auth in front, a browser app on another origin (OpenBB
+# Workspace) cannot connect, because its CORS preflight carries no credentials.
+services:
+  openbb-odp:
+    image: ghcr.io/michaexel-copilot/openbb-odp:latest
+    container_name: openbb-odp
+    restart: unless-stopped
+    environment:
+      # Optional data provider keys, e.g. OPENBB_FMP_API_KEY (see docs.openbb.co)
+      OPENBB_API_HOST: 0.0.0.0
+    volumes:
+      - openbb-odp-home:/home/app
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.openbb-odp.rule=Host(`${ODP_DOMAIN:-odp.michaexel.de}`)
+      - traefik.http.routers.openbb-odp.entrypoints=websecure
+      - traefik.http.routers.openbb-odp.tls=true
+      - traefik.http.routers.openbb-odp.tls.certresolver=letsencrypt
+      - traefik.http.routers.openbb-odp.middlewares=openbb-odp-auth
+      - traefik.http.middlewares.openbb-odp-auth.basicauth.users=${ODP_AUTH_USERS:?set ODP_AUTH_USERS}
+      - traefik.http.services.openbb-odp.loadbalancer.server.port=6900
+
+volumes:
+  openbb-odp-home:
