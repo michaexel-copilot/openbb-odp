@@ -13,7 +13,10 @@ ENV PYTHONUNBUFFERED=1 \
     UV_COMPILE_BYTECODE=1 \
     HOME=/home/app
 
-RUN uv pip install --system --no-cache "openbb==${OPENBB_VERSION}" \
+# The "routers" extra adds the standard routers (economy, equity, etf, ...);
+# without it only the providers' own routes exist and apps that reference
+# e.g. the economy calendar widget report missing widgets.
+RUN uv pip install --system --no-cache "openbb[routers]==${OPENBB_VERSION}" \
  && useradd --uid 1000 --create-home app
 
 USER app
